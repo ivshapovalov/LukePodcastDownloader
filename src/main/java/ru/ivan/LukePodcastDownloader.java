@@ -7,17 +7,20 @@ import org.jsoup.select.Elements;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Calendar;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class LukePodcastDownloader {
 
     public static void main(String[] args) throws IOException {
-        Validate.isTrue(args.length == 1, "usage: supply url to fetch");
+        Validate.isTrue(args.length == 1, "Usage: supply local path to save");
         String remoteURL = "http://teacherluke.co.uk/archive-of-episodes-1-149/";
         String localPath = args[0];
 
@@ -50,23 +53,26 @@ public class LukePodcastDownloader {
             }
             return;
         });
+        print("Download mp3 begin: %s", Calendar.getInstance().getTime());
 
-        print("Downloads mp3 from list");
         podcasts.parallelStream().forEach(mp3Link -> {
-            URL mp3URL;
-            Path targetPath;
             try {
-                mp3URL = new URL(mp3Link);
-                String fileName = mp3Link.substring(mp3Link.lastIndexOf('/') + 1, mp3Link.length());
-                targetPath = new File(localPath + File.separator + fileName).toPath();
-                Files.copy(mp3URL.openStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                print("Save %s ", fileName);
+                URL mp3URL = new URL(mp3Link);
+                try (InputStream inputStream = mp3URL.openStream()) {
+                    String fileName = mp3Link.substring(mp3Link.lastIndexOf('/') + 1, mp3Link.length());
+                    Path targetPath = new File(localPath + File.separator + fileName).toPath();
+                    Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    print("%s complete", fileName);
 
-            } catch (Exception e) {
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
+
         });
-        print("Download complete!");
+        print("Download complete: %s", Calendar.getInstance().getTime());
 
     }
 
